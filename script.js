@@ -415,7 +415,8 @@ function analyzeCode(code, rawCode = code, visualLines = null, filenameHint = ''
         sql: 'SQL',
         html: 'HTML',
         css: 'CSS',
-        json: 'JSON'
+        json: 'JSON',
+        php: 'PHP'
     };
 
     return {

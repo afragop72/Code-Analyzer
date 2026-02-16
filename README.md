@@ -2,6 +2,8 @@
 
 A client-side web app that detects the programming language of pasted code using pattern and keyword heuristics.
 
+![CodeAnalyzer Studio](images/Code-Analyzer.png)
+
 ## Features
 - Heuristic language detection with confidence score
 - Line numbers and code stats (lines/characters)
