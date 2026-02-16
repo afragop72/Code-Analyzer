@@ -6,8 +6,10 @@ A client-side web app that detects the programming language of pasted code using
 - Heuristic language detection with confidence score
 - Line numbers and code stats (lines/characters)
 - Detectable languages list with logos
-- Light/Dark mode toggle
 - Copy Result button (language + confidence + stats)
+- Filename hint detection (e.g., `// main.ts`)
+- Performance guard for large inputs
+- Match explanation (patterns/keywords count)
 
 ## Detectable Languages
 - JavaScript
@@ -40,9 +42,9 @@ Open `index.html` in a browser.
 
 ## Usage
 1. Paste code into the left panel.
-2. Click `Analyze Code` (or press `Ctrl+Enter` / `Cmd+Enter`).
+2. Click `Analyze Code` (or press `Enter`).
 3. See the detected language, confidence, and stats.
-4. Use `Copy Result` to copy the summary.
+4. Use `Copy Result` to copy the full report.
 
 ## How Detection Works
 - Each language has regex patterns and keyword lists in `languagePatterns` inside `script.js`.

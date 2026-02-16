@@ -270,6 +270,10 @@ function detectLanguage() {
     const rawCode = codeInput.value;
     const code = rawCode.trim();
     const visualLines = getVisualLineCount(codeInput);
+    const filenameHint = getFilenameHint(rawCode);
+    const perfLimit = 20000;
+    const isTruncated = rawCode.length > perfLimit;
+    const analysisCode = isTruncated ? rawCode.slice(0, perfLimit) : rawCode;
     
     if (!code) {
         alert('Please paste some code first!');
@@ -280,16 +284,19 @@ function detectLanguage() {
     document.getElementById('detectBtnText').innerHTML = '<span class="loading"></span>';
     
     setTimeout(() => {
-        const results = analyzeCode(code, rawCode, visualLines);
+        const results = analyzeCode(analysisCode.trim(), analysisCode, visualLines, filenameHint);
+        results.isTruncated = isTruncated;
+        results.truncatedChars = perfLimit;
         displayResults(results);
         document.getElementById('detectBtnText').textContent = 'Analyze Code';
     }, 800);
 }
 
-function analyzeCode(code, rawCode = code, visualLines = null) {
+function analyzeCode(code, rawCode = code, visualLines = null, filenameHint = '') {
     const scores = {};
     const detectedFeatures = {};
-    const filenameHint = code.match(/^\s*\/\/\s*[\w.\-]+/m)?.[0] || '';
+    const patternCounts = {};
+    const keywordCounts = {};
     const hasTsHint = /\.ts\b/i.test(filenameHint);
 
     // Calculate scores for each language
@@ -313,6 +320,7 @@ function analyzeCode(code, rawCode = code, visualLines = null) {
                 );
                 score += isTsSignal ? 18 : 10;
                 features.push(pattern.toString().slice(1, -1));
+                patternCounts[lang] = (patternCounts[lang] || 0) + 1;
             }
         });
 
@@ -323,6 +331,7 @@ function analyzeCode(code, rawCode = code, visualLines = null) {
             if (matches) {
                 const isTsKeyword = lang === 'typescript' && ['interface', 'type', 'enum', 'readonly', 'abstract'].includes(keyword);
                 score += matches.length * (isTsKeyword ? 4 : 2);
+                keywordCounts[lang] = (keywordCounts[lang] || 0) + matches.length;
             }
         });
 
@@ -343,6 +352,38 @@ function analyzeCode(code, rawCode = code, visualLines = null) {
         }
     }
 
+    const fileExtensionBoosts = {
+        '.js': 'javascript',
+        '.ts': 'typescript',
+        '.tsx': 'typescript',
+        '.jsx': 'jsx',
+        '.py': 'python',
+        '.java': 'java',
+        '.cs': 'csharp',
+        '.cpp': 'cpp',
+        '.cxx': 'cpp',
+        '.cc': 'cpp',
+        '.c': 'c',
+        '.rb': 'ruby',
+        '.php': 'php',
+        '.swift': 'swift',
+        '.go': 'go',
+        '.rs': 'rust',
+        '.kt': 'kotlin',
+        '.kts': 'kotlin',
+        '.sql': 'sql',
+        '.html': 'html',
+        '.htm': 'html',
+        '.css': 'css',
+        '.json': 'json'
+    };
+
+    const extMatch = filenameHint.match(/\.[a-z0-9]+/i);
+    if (extMatch && fileExtensionBoosts[extMatch[0].toLowerCase()]) {
+        const target = fileExtensionBoosts[extMatch[0].toLowerCase()];
+        scores[target] = (scores[target] || 0) + 30;
+    }
+
     // Get top language
     const sortedLanguages = Object.entries(scores)
         .sort((a, b) => b[1] - a[1])
@@ -354,7 +395,10 @@ function analyzeCode(code, rawCode = code, visualLines = null) {
             confidence: 0,
             features: [],
             lines: visualLines || rawCode.split('\n').length,
-            chars: rawCode.length
+            chars: rawCode.length,
+            filenameHint: filenameHint,
+            patternCount: 0,
+            keywordCount: 0
         };
     }
 
@@ -382,14 +426,20 @@ function analyzeCode(code, rawCode = code, visualLines = null) {
         chars: rawCode.length,
         alternatives: sortedLanguages.slice(1, 4).map(([lang, _]) => 
             lang.charAt(0).toUpperCase() + lang.slice(1)
-        )
+        ),
+        filenameHint: filenameHint,
+        patternCount: patternCounts[topLang] || 0,
+        keywordCount: keywordCounts[topLang] || 0
     };
 }
 
 function displayResults(results) {
+    lastResults = results;
     const emptyState = document.getElementById('emptyState');
     const resultContent = document.getElementById('resultContent');
     const copyBtn = document.getElementById('copyResultBtn');
+    const filenameHintEl = document.getElementById('filenameHint');
+    const perfWarning = document.getElementById('perfWarning');
 
     emptyState.style.display = 'none';
     resultContent.style.display = 'block';
@@ -423,6 +473,7 @@ function displayResults(results) {
             <div class="language-meta">
                 <div class="language-name">${results.language}</div>
                 <div class="confidence">Confidence: ${results.confidence}%</div>
+                <div class="confidence">Matched ${results.patternCount} patterns, ${results.keywordCount} keywords</div>
             </div>
             ${logoSrc ? `<img class="language-logo" src="${logoSrc}" alt="${results.language} logo">` : ''}
         </div>
@@ -456,6 +507,21 @@ function displayResults(results) {
         </div>
         ` : ''}
     `;
+
+    if (results.filenameHint) {
+        filenameHintEl.style.display = 'block';
+        filenameHintEl.textContent = `Filename hint: ${results.filenameHint}`;
+    } else {
+        filenameHintEl.style.display = 'none';
+    }
+
+    if (results.isTruncated) {
+        perfWarning.style.display = 'block';
+        perfWarning.textContent = `Large input detected. Analyzing first ${results.truncatedChars} characters for performance.`;
+    } else {
+        perfWarning.style.display = 'none';
+    }
+
 }
 
 function escapeHtml(text) {
@@ -464,11 +530,20 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function getFilenameHint(rawCode) {
+    const commentMatch = rawCode.match(/^\s*\/\/\s*([^\n]+)/m);
+    if (!commentMatch) return '';
+    const value = commentMatch[1].trim();
+    return /\.\w+$/.test(value) ? value : '';
+}
+
 
 function clearAll() {
     document.getElementById('codeInput').value = '';
     document.getElementById('emptyState').style.display = 'flex';
     document.getElementById('resultContent').style.display = 'none';
+    document.getElementById('filenameHint').style.display = 'none';
+    document.getElementById('perfWarning').style.display = 'none';
     document.getElementById('copyResultBtn').disabled = true;
     updateLineNumbers();
 }
@@ -497,6 +572,12 @@ print(fibonacci(10))`,
 
 // Add keyboard shortcut
 document.getElementById('codeInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        detectLanguage();
+        return;
+    }
+
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         detectLanguage();
     }
@@ -566,39 +647,165 @@ document.getElementById('codeInput').addEventListener('input', () => {
 });
 document.getElementById('codeInput').addEventListener('scroll', syncLineNumbersScroll);
 
-const themeToggle = document.getElementById('themeToggle');
-
-function setTheme(theme) {
-    document.body.classList.toggle('light-theme', theme === 'light');
-    themeToggle.textContent = theme === 'light' ? 'Dark Mode' : 'Light Mode';
-    localStorage.setItem('theme', theme);
-}
-
-themeToggle.addEventListener('click', () => {
-    const isLight = document.body.classList.contains('light-theme');
-    setTheme(isLight ? 'dark' : 'light');
-});
-
-const savedTheme = localStorage.getItem('theme') || 'dark';
-setTheme(savedTheme);
-
 updateLineNumbers();
 
-document.getElementById('copyResultBtn').addEventListener('click', async () => {
-    const resultContent = document.getElementById('resultContent');
-    if (!resultContent || resultContent.style.display === 'none') return;
+function tryLoadHistoryFromStorage() {
+    let entry = null;
+    try {
+        entry = JSON.parse(localStorage.getItem('codeAnalyzerSelected')) || null;
+    } catch {
+        entry = null;
+    }
+    if (!entry) {
+        entry = getHistoryFromUrl();
+    }
+    if (!entry) return;
+    localStorage.removeItem('codeAnalyzerSelected');
 
-    const language = resultContent.querySelector('.language-name')?.textContent || 'Unknown';
-    const confidence = resultContent.querySelector('.confidence')?.textContent || 'Confidence: 0%';
-    const lines = resultContent.querySelector('.stat .stat-value')?.textContent || '0';
-    const chars = resultContent.querySelectorAll('.stat .stat-value')[1]?.textContent || '0';
+    const codeInput = document.getElementById('codeInput');
+    codeInput.value = entry.code || '';
+    updateLineNumbers();
+
+    const hasStoredResults = typeof entry.confidence === 'number' && entry.language;
+    if (hasStoredResults) {
+        const results = {
+            language: entry.language,
+            confidence: entry.confidence,
+            features: entry.features || [],
+            alternatives: entry.alternatives || [],
+            lines: entry.lines || (entry.code ? entry.code.split('\n').length : 0),
+            chars: entry.chars || (entry.code ? entry.code.length : 0),
+            filenameHint: entry.filenameHint || '',
+            patternCount: entry.patternCount || 0,
+            keywordCount: entry.keywordCount || 0
+        };
+        displayResults(results);
+    } else if (entry.code) {
+        const raw = entry.code;
+        const results = analyzeCode(raw.trim(), raw, getVisualLineCount(codeInput), getFilenameHint(raw));
+        displayResults(results);
+        pushHistory(results, raw);
+    }
+}
+
+function getHistoryFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const idParam = params.get('historyId');
+    const indexParam = params.get('history');
+    const entries = loadHistory();
+
+    if (idParam) {
+        return entries.find(item => item.id === idParam) || null;
+    }
+
+    if (indexParam !== null) {
+        const index = Number(indexParam);
+        if (!Number.isNaN(index)) {
+            return entries[index] || null;
+        }
+    }
+
+    return null;
+}
+
+const history = loadHistory();
+let lastResults = null;
+
+function pushHistory(results, rawCode) {
+    const entry = {
+        id: `${Date.now()}`,
+        language: results.language,
+        confidence: results.confidence,
+        timestamp: new Date().toLocaleTimeString(),
+        lines: results.lines,
+        chars: results.chars,
+        filenameHint: results.filenameHint || '',
+        patternCount: results.patternCount || 0,
+        keywordCount: results.keywordCount || 0,
+        alternatives: results.alternatives || [],
+        features: results.features || [],
+        code: rawCode || ''
+    };
+    history.unshift(entry);
+    if (history.length > 5) history.pop();
+    saveHistory();
+}
+
+function saveHistory() {
+    localStorage.setItem('codeAnalyzerHistory', JSON.stringify(history));
+}
+
+function loadHistory() {
+    try {
+        return JSON.parse(localStorage.getItem('codeAnalyzerHistory')) || [];
+    } catch {
+        return [];
+    }
+}
+
+
+function loadHistoryEntry(index) {
+    const entries = loadHistory();
+    return entries[index] || null;
+}
+
+function tryLoadHistoryFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const indexParam = params.get('history');
+    if (indexParam === null) return;
+    const index = Number(indexParam);
+    if (Number.isNaN(index)) return;
+
+    const entry = loadHistoryEntry(index);
+    if (!entry) return;
+
+    const codeInput = document.getElementById('codeInput');
+    codeInput.value = entry.code || '';
+    updateLineNumbers();
+
+    const hasStoredResults = typeof entry.confidence === 'number' && entry.language;
+    if (hasStoredResults) {
+        const results = {
+            language: entry.language,
+            confidence: entry.confidence,
+            features: entry.features || [],
+            alternatives: entry.alternatives || [],
+            lines: entry.lines || (entry.code ? entry.code.split('\n').length : 0),
+            chars: entry.chars || (entry.code ? entry.code.length : 0),
+            filenameHint: entry.filenameHint || '',
+            patternCount: entry.patternCount || 0,
+            keywordCount: entry.keywordCount || 0
+        };
+        displayResults(results);
+    } else if (entry.code) {
+        const raw = entry.code;
+        const results = analyzeCode(raw.trim(), raw, getVisualLineCount(codeInput), getFilenameHint(raw));
+        displayResults(results);
+        pushHistory(results, raw);
+    }
+}
+
+document.getElementById('copyResultBtn').addEventListener('click', async () => {
+    if (!lastResults) return;
+
+    const language = lastResults.language || 'Unknown';
+    const confidence = `Confidence: ${lastResults.confidence || 0}%`;
+    const stats = `Matched ${lastResults.patternCount || 0} patterns, ${lastResults.keywordCount || 0} keywords`;
+    const lines = lastResults.lines ?? 0;
+    const chars = lastResults.chars ?? 0;
+    const patterns = (lastResults.features || []).join(', ');
+    const alternatives = (lastResults.alternatives || []).join(', ');
 
     const text = [
         `Language: ${language}`,
         confidence,
+        stats,
         `Lines: ${lines}`,
-        `Characters: ${chars}`
-    ].join('\n');
+        `Characters: ${chars}`,
+        lastResults.filenameHint ? `Filename hint: ${lastResults.filenameHint}` : '',
+        patterns ? `Detected Patterns: ${patterns}` : '',
+        alternatives ? `Alternatives: ${alternatives}` : ''
+    ].filter(Boolean).join('\n');
 
     try {
         await navigator.clipboard.writeText(text);

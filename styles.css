@@ -50,65 +50,6 @@ h1 {
     color: var(--text-secondary);
 }
 
-.theme-toggle {
-    margin-top: 1.25rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.8rem;
-    border-radius: 999px;
-    background: #1f1f22;
-    color: var(--text);
-    border: 1px solid var(--border);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.theme-toggle:hover {
-    background: #2a2a2f;
-}
-
-body.light-theme {
-    --primary: #2563eb;
-    --primary-dark: #1e40af;
-    --success: #10b981;
-    --bg: #ffffff;
-    --bg-secondary: #f8fafc;
-    --text: #1e293b;
-    --text-secondary: #64748b;
-    --border: #e2e8f0;
-    background: var(--bg-secondary);
-}
-
-body.light-theme .panel {
-    background: var(--bg);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-body.light-theme .code-input,
-body.light-theme .line-numbers {
-    background: var(--bg-secondary);
-}
-
-body.light-theme .btn-clear {
-    background: transparent;
-}
-
-body.light-theme .btn-clear:hover {
-    background: var(--bg-secondary);
-}
-
-body.light-theme .language-badge,
-body.light-theme .features,
-body.light-theme .stat {
-    background: var(--bg-secondary);
-}
-
-body.light-theme .tag {
-    background: var(--bg);
-}
-
-body.light-theme .theme-toggle {
-    background: var(--bg);
-}
 
 .main-content {
     display: grid;
@@ -143,9 +84,15 @@ body.light-theme .theme-toggle {
     gap: 1rem;
 }
 
+.panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .code-input {
     display: flex;
-    height: 500px;
+    height: 650px;
     background: #1f1f22;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -358,6 +305,7 @@ button {
     cursor: not-allowed;
 }
 
+
 .result-display {
     min-height: 350px;
 }
@@ -380,6 +328,26 @@ button {
 
 .result-content {
     animation: fadeIn 0.3s ease-out;
+}
+
+.perf-warning {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: #2a2520;
+    border: 1px solid #5a3b1e;
+    border-radius: 6px;
+    color: #f0c58a;
+    font-size: 0.85rem;
+}
+
+.filename-hint {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: #1f1f22;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
 }
 
 @keyframes fadeIn {
@@ -412,6 +380,7 @@ button {
     background: #2b2b2f;
     border: 1px solid var(--border);
 }
+
 
 
 .language-name {
