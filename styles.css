@@ -1,3 +1,4 @@
+/* Core theme tokens for colors, typography, and editor metrics. */
 :root {
     --primary: #3b82f6;
     --primary-dark: #1d4ed8;
@@ -13,12 +14,14 @@
     --line-number-offset: 0px;
 }
 
+/* Basic reset for consistent spacing and sizing. */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+/* App background + base typography. */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: #1f1f22;
@@ -27,17 +30,20 @@ body {
     line-height: 1.6;
 }
 
+/* Page width and outer padding. */
 .container {
     max-width: 1440px;
     margin: 0 auto;
     padding: 3rem 2rem;
 }
 
+/* App header layout. */
 header {
     text-align: center;
     margin-bottom: 3rem;
 }
 
+/* Primary title. */
 h1 {
     font-size: 2rem;
     font-weight: 700;
@@ -45,18 +51,21 @@ h1 {
     margin-bottom: 0.5rem;
 }
 
+/* Subtitle text styling. */
 .subtitle {
     font-size: 0.95rem;
     color: var(--text-secondary);
 }
 
 
+/* Three-column layout: language list, editor, results. */
 .main-content {
     display: grid;
     grid-template-columns: 240px minmax(520px, 1fr) 360px;
     gap: 2rem;
 }
 
+/* Card container used throughout. */
 .panel {
     background: #2b2b2f;
     border: 1px solid var(--border);
@@ -65,18 +74,21 @@ h1 {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
+/* Panel header with underline. */
 .panel-header {
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border);
 }
 
+/* Panel title text. */
 .panel-title {
     font-size: 1.125rem;
     font-weight: 600;
     color: var(--text);
 }
 
+/* Header row with title + actions. */
 .panel-title-row {
     display: flex;
     align-items: center;
@@ -84,12 +96,14 @@ h1 {
     gap: 1rem;
 }
 
+/* Action buttons container in header. */
 .panel-actions {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
+/* Code input wrapper with line-number gutter. */
 .code-input {
     display: flex;
     height: 650px;
@@ -101,6 +115,7 @@ h1 {
 }
 
 
+/* Line numbers gutter aligned to code lines. */
 .line-numbers {
     padding: calc(var(--code-padding) + var(--line-number-offset)) 0.75rem;
     background: #1f1f22;
@@ -117,6 +132,7 @@ h1 {
     font-variant-numeric: tabular-nums;
 }
 
+/* Code input area (plain textarea). */
 textarea {
     width: 100%;
     height: 100%;
@@ -134,31 +150,37 @@ textarea {
     box-sizing: border-box;
 }
 
+/* Focus state for code input. */
 textarea:focus {
     outline: none;
 }
 
+/* Highlight border when textarea is focused. */
 .code-input:focus-within {
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
+/* Placeholder text styling. */
 textarea::placeholder {
     color: var(--text-secondary);
 }
 
+/* Primary action buttons under editor. */
 .actions {
     margin-top: 1.5rem;
     display: flex;
     gap: 0.75rem;
 }
 
+/* Simple list text blocks. */
 .info-list {
     font-size: 0.85rem;
     color: var(--text-secondary);
     line-height: 1.5;
 }
 
+/* Detectable languages list layout. */
 .language-list {
     list-style: none;
     margin: 0;
@@ -168,6 +190,7 @@ textarea::placeholder {
     line-height: 1.5;
 }
 
+/* Each language row (icon + label). */
 .language-list li {
     display: flex;
     align-items: center;
@@ -180,18 +203,21 @@ textarea::placeholder {
     border-bottom: none;
 }
 
+/* Default language icon size. */
 .lang-icon {
     width: 24px;
     height: 24px;
     flex: 0 0 24px;
 }
 
+/* Special sizing override for the Go logo. */
 .go-icon {
     width: 35px;
     height: 35px;
     flex: 0 0 35px;
 }
 
+/* Generic logo badge used for non-square assets. */
 .logo-badge {
     width: 28px;
     height: 28px;
@@ -209,6 +235,7 @@ textarea::placeholder {
     height: 20px;
 }
 
+/* PHP logo badge (wide logo). */
 .php-badge {
     width: 40px;
     height: 24px;
@@ -224,6 +251,7 @@ textarea::placeholder {
     border-radius: 0;
 }
 
+/* SQL logo badge (wide logo). */
 .sql-badge {
     width: 40px;
     height: 24px;
@@ -239,6 +267,7 @@ textarea::placeholder {
     border-radius: 0;
 }
 
+/* CSS logo badge (wide logo). */
 .css-badge {
     width: 40px;
     height: 24px;
@@ -254,6 +283,7 @@ textarea::placeholder {
     border-radius: 0;
 }
 
+/* Shared button base styles. */
 button {
     flex: 1;
     padding: 0.75rem 1.5rem;
@@ -266,6 +296,7 @@ button {
     transition: all 0.2s ease;
 }
 
+/* Primary analyze button. */
 .btn-detect {
     background: var(--primary);
     color: white;
@@ -275,6 +306,7 @@ button {
     background: var(--primary-dark);
 }
 
+/* Secondary clear button. */
 .btn-clear {
     background: #1f1f22;
     color: var(--text-secondary);
@@ -286,6 +318,7 @@ button {
     color: var(--text);
 }
 
+/* Copy button in results header. */
 .btn-copy {
     flex: 0 0 auto;
     padding: 0.5rem 0.9rem;
@@ -306,10 +339,12 @@ button {
 }
 
 
+/* Results container sizing. */
 .result-display {
     min-height: 350px;
 }
 
+/* Empty-state layout before analysis. */
 .empty-state {
     height: 350px;
     display: flex;
@@ -326,10 +361,12 @@ button {
     opacity: 0.3;
 }
 
+/* Results content fade-in. */
 .result-content {
     animation: fadeIn 0.3s ease-out;
 }
 
+/* Performance warning for large input. */
 .perf-warning {
     margin-top: 1rem;
     padding: 0.75rem 1rem;
@@ -340,6 +377,7 @@ button {
     font-size: 0.85rem;
 }
 
+/* Filename hint banner. */
 .filename-hint {
     margin-top: 1rem;
     padding: 0.75rem 1rem;
@@ -355,6 +393,7 @@ button {
     to { opacity: 1; }
 }
 
+/* Highlighted language summary. */
 .language-badge {
     display: inline-flex;
     align-items: center;
@@ -366,12 +405,14 @@ button {
     margin-bottom: 1.5rem;
 }
 
+/* Language badge text stack. */
 .language-meta {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
 }
 
+/* Logo shown inside the results badge. */
 .language-logo {
     width: 40px;
     height: 40px;
@@ -394,6 +435,7 @@ button {
     color: var(--text-secondary);
 }
 
+/* Detected patterns section. */
 .features {
     background: #1f1f22;
     border-radius: 6px;
@@ -414,6 +456,7 @@ button {
     gap: 0.5rem;
 }
 
+/* Pattern/alternative tag pill. */
 .tag {
     padding: 0.4rem 0.75rem;
     background: #2b2b2f;
@@ -423,12 +466,14 @@ button {
     color: var(--text-secondary);
 }
 
+/* Metrics grid (lines/characters). */
 .stats {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
 }
 
+/* Metric card. */
 .stat {
     background: #1f1f22;
     padding: 1rem;
@@ -448,6 +493,7 @@ button {
     color: var(--text);
 }
 
+/* Stack columns on smaller screens. */
 @media (max-width: 968px) {
     .main-content {
         grid-template-columns: 1fr;
@@ -458,6 +504,7 @@ button {
     }
 }
 
+/* Inline spinner for analyze button. */
 .loading {
     display: inline-block;
     width: 16px;

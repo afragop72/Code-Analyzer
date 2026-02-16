@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- App shell + CSS/JS hooks for the CodeAnalyzer Studio UI -->
     <title>CodeAnalyzer Studio</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
@@ -10,15 +11,20 @@
 <body>
     <div class="container">
         <header>
+            <!-- Brand/title area -->
             <h1>CodeAnalyzer Studio</h1>
+            <!-- One-line product explanation -->
             <p class="subtitle">Paste your code and instantly identify the programming language</p>
         </header>
 
         <div class="main-content">
+            <!-- Left panel: list of languages the detector can recognize -->
             <div class="panel">
                 <div class="panel-header">
+                    <!-- Section label for the language catalog -->
                     <h2 class="panel-title">Detectable Languages</h2>
                 </div>
+                <!-- Icon + name list for each supported language -->
                 <ul class="language-list">
                     <li>
                         <img class="lang-icon" src="images/Js-Logo.png" alt="JavaScript logo">
@@ -101,47 +107,63 @@
                 </ul>
             </div>
 
+            <!-- Center panel: code input editor -->
             <div class="panel">
                 <div class="panel-header">
+                    <!-- Section label for the code input -->
                     <h2 class="panel-title">Paste Your Code</h2>
                 </div>
+                <!-- Code editor wrapper with line-number gutter and textarea -->
                 <div class="code-input">
+                    <!-- Line numbers are generated and synced in script.js -->
                     <div id="lineNumbers" class="line-numbers">1</div>
+                    <!-- Raw code input (analyzed on demand) -->
                     <textarea 
                         id="codeInput" 
                         placeholder="Paste your code here...&#10;&#10;function example() {&#10;    console.log('Hello World');&#10;}"
                     ></textarea>
                 </div>
+                <!-- Action buttons -->
                 <div class="actions">
+                    <!-- Primary action: run language detection -->
                     <button class="btn-detect" onclick="detectLanguage()">
                         <span id="detectBtnText">Detect Language</span>
                     </button>
+                    <!-- Secondary action: clear input + results -->
                     <button class="btn-clear" onclick="clearAll()">Clear</button>
                 </div>
             </div>
 
+            <!-- Right panel: analysis results -->
             <div class="panel">
                 <div class="panel-header">
                     <div class="panel-title-row">
+                        <!-- Section label for results -->
                         <h2 class="panel-title">Results</h2>
                         <div class="panel-actions">
+                            <!-- Copy report button (enabled after analysis) -->
                             <button class="btn-copy" id="copyResultBtn" type="button" disabled>Copy Result</button>
                         </div>
                     </div>
                 </div>
                 <div class="result-display">
+                    <!-- Empty state shown before analysis -->
                     <div id="emptyState" class="empty-state">
                         <div class="empty-icon">📝</div>
                         <p>No code detected yet</p>
                     </div>
+                    <!-- Filled dynamically with the analysis output -->
                     <div id="resultContent" class="result-content" style="display: none;"></div>
+                    <!-- Optional filename hint banner -->
                     <div id="filenameHint" class="filename-hint" style="display: none;"></div>
+                    <!-- Optional large-input performance warning -->
                     <div id="perfWarning" class="perf-warning" style="display: none;"></div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- App logic (detection, metrics, UI rendering) -->
     <script src="script.js"></script>
 </body>
 </html>

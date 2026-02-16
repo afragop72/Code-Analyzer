@@ -1,4 +1,4 @@
-// Comprehensive language detection patterns
+// Language detection configuration: regex patterns, keywords, and extensions per language.
 const languagePatterns = {
     javascript: {
         patterns: [
@@ -265,12 +265,14 @@ const languagePatterns = {
     }
 };
 
+// Orchestrates detection: validate input, apply perf guard, run analysis, then render.
 function detectLanguage() {
     const codeInput = document.getElementById('codeInput');
     const rawCode = codeInput.value;
     const code = rawCode.trim();
     const visualLines = getVisualLineCount(codeInput);
     const filenameHint = getFilenameHint(rawCode);
+    // Guardrail for very large input to keep UI responsive.
     const perfLimit = 20000;
     const isTruncated = rawCode.length > perfLimit;
     const analysisCode = isTruncated ? rawCode.slice(0, perfLimit) : rawCode;
@@ -280,33 +282,42 @@ function detectLanguage() {
         return;
     }
 
-    // Show loading state
+    // Show a brief loading state for UX (simulates "working" even on fast inputs).
     document.getElementById('detectBtnText').innerHTML = '<span class="loading"></span>';
     
     setTimeout(() => {
+        // Analyze the (possibly truncated) code.
         const results = analyzeCode(analysisCode.trim(), analysisCode, visualLines, filenameHint);
+        // Persist truncation info for the UI warning banner.
         results.isTruncated = isTruncated;
         results.truncatedChars = perfLimit;
+        // Render results into the Results panel.
         displayResults(results);
         document.getElementById('detectBtnText').textContent = 'Analyze Code';
     }, 800);
 }
 
+// Scores each language based on patterns/keywords and returns a result payload.
 function analyzeCode(code, rawCode = code, visualLines = null, filenameHint = '') {
+    // Per-language scores accumulate from patterns + keywords.
     const scores = {};
+    // Track top matched patterns to surface "why" in UI.
     const detectedFeatures = {};
+    // Count pattern/keyword matches for explanation text.
     const patternCounts = {};
     const keywordCounts = {};
+    // File-name hint (e.g., // main.ts) to bias detection.
     const hasTsHint = /\.ts\b/i.test(filenameHint);
 
-    // Calculate scores for each language
+    // Calculate scores for each language.
     for (const [lang, config] of Object.entries(languagePatterns)) {
         let score = 0;
         const features = [];
 
-        // Check patterns
+        // Check patterns (stronger signals contribute more).
         config.patterns.forEach(pattern => {
             if (pattern.test(code)) {
+                // Some patterns are strong TS signals (types, interfaces, etc.).
                 const isTsSignal = lang === 'typescript' && (
                     pattern.source.includes('interface') ||
                     pattern.source.includes('type') ||
@@ -318,17 +329,20 @@ function analyzeCode(code, rawCode = code, visualLines = null, filenameHint = ''
                     pattern.source.includes('unknown') ||
                     pattern.source.includes('never')
                 );
+                // Higher score for strong TS signals.
                 score += isTsSignal ? 18 : 10;
+                // Save a short pattern string for the UI.
                 features.push(pattern.toString().slice(1, -1));
                 patternCounts[lang] = (patternCounts[lang] || 0) + 1;
             }
         });
 
-        // Check keywords
+        // Check keywords (TS-only keywords get extra weight).
         config.keywords.forEach(keyword => {
             const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
             const matches = code.match(regex);
             if (matches) {
+                // TS keywords signal typing constructs.
                 const isTsKeyword = lang === 'typescript' && ['interface', 'type', 'enum', 'readonly', 'abstract'].includes(keyword);
                 score += matches.length * (isTsKeyword ? 4 : 2);
                 keywordCounts[lang] = (keywordCounts[lang] || 0) + matches.length;
@@ -339,19 +353,23 @@ function analyzeCode(code, rawCode = code, visualLines = null, filenameHint = ''
         detectedFeatures[lang] = features.slice(0, 5); // Limit to top 5 features
     }
 
+    // Additional TS heuristics outside of pattern lists.
     const hasTsSignals = /:\s*[\w<>\[\],\s]+(?=\s*[=;,)])|\binterface\b|\btype\b|\benum\b|\bimplements\b|\breadonly\b|\bkeyof\b|\bunknown\b|\bnever\b/.test(code);
 
     if (hasTsHint) {
+        // File extension hint for TS.
         scores.typescript = (scores.typescript || 0) + 40;
     }
 
     if (hasTsSignals) {
+        // When TS signals appear, push TS above JS if close.
         scores.typescript = (scores.typescript || 0) + 40;
         if ((scores.typescript || 0) <= (scores.javascript || 0)) {
             scores.typescript += 30;
         }
     }
 
+    // Extension-based bias if a filename hint exists.
     const fileExtensionBoosts = {
         '.js': 'javascript',
         '.ts': 'typescript',
@@ -384,7 +402,7 @@ function analyzeCode(code, rawCode = code, visualLines = null, filenameHint = ''
         scores[target] = (scores[target] || 0) + 30;
     }
 
-    // Get top language
+    // Pick the top-scoring language and compute confidence.
     const sortedLanguages = Object.entries(scores)
         .sort((a, b) => b[1] - a[1])
         .filter(([_, score]) => score > 0);
@@ -404,8 +422,10 @@ function analyzeCode(code, rawCode = code, visualLines = null, filenameHint = ''
 
     const [topLang, topScore] = sortedLanguages[0];
     const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
+    // Confidence is the top score vs total score, capped below 100.
     const confidence = Math.min(Math.round((topScore / (totalScore || 1)) * 100), 99);
 
+    // UI-friendly names for special cases.
     const displayNames = {
         cpp: 'C++',
         csharp: 'C#',
@@ -425,6 +445,7 @@ function analyzeCode(code, rawCode = code, visualLines = null, filenameHint = ''
         features: detectedFeatures[topLang],
         lines: visualLines || rawCode.split('\n').length,
         chars: rawCode.length,
+        // Alternatives show the next few candidates.
         alternatives: sortedLanguages.slice(1, 4).map(([lang, _]) => 
             lang.charAt(0).toUpperCase() + lang.slice(1)
         ),
@@ -434,8 +455,10 @@ function analyzeCode(code, rawCode = code, visualLines = null, filenameHint = ''
     };
 }
 
+// Renders results panel: language badge, patterns, stats, and hints.
 function displayResults(results) {
     lastResults = results;
+    // DOM handles for the Results panel.
     const emptyState = document.getElementById('emptyState');
     const resultContent = document.getElementById('resultContent');
     const copyBtn = document.getElementById('copyResultBtn');
@@ -446,6 +469,8 @@ function displayResults(results) {
     resultContent.style.display = 'block';
     copyBtn.disabled = false;
 
+    // Map display name to logo asset for the badge.
+    // Map display name to logo asset for the badge.
     const logoMap = {
         JavaScript: 'images/Js-Logo.png',
         Python: 'images/Python-Logo.png',
@@ -469,6 +494,7 @@ function displayResults(results) {
 
     const logoSrc = logoMap[results.language];
 
+    // Render the results markup.
     resultContent.innerHTML = `
         <div class="language-badge">
             <div class="language-meta">
@@ -509,6 +535,7 @@ function displayResults(results) {
         ` : ''}
     `;
 
+    // Optional filename hint banner.
     if (results.filenameHint) {
         filenameHintEl.style.display = 'block';
         filenameHintEl.textContent = `Filename hint: ${results.filenameHint}`;
@@ -516,6 +543,7 @@ function displayResults(results) {
         filenameHintEl.style.display = 'none';
     }
 
+    // Optional large-input warning.
     if (results.isTruncated) {
         perfWarning.style.display = 'block';
         perfWarning.textContent = `Large input detected. Analyzing first ${results.truncatedChars} characters for performance.`;
@@ -525,12 +553,14 @@ function displayResults(results) {
 
 }
 
+// Prevents HTML injection in rendered pattern tags.
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
+// Extract a filename hint from a comment like `// main.ts`.
 function getFilenameHint(rawCode) {
     const commentMatch = rawCode.match(/^\s*\/\/\s*([^\n]+)/m);
     if (!commentMatch) return '';
@@ -539,6 +569,7 @@ function getFilenameHint(rawCode) {
 }
 
 
+// Resets input and result UI back to the empty state.
 function clearAll() {
     document.getElementById('codeInput').value = '';
     document.getElementById('emptyState').style.display = 'flex';
@@ -549,7 +580,7 @@ function clearAll() {
     updateLineNumbers();
 }
 
-// Example code snippets for demo
+// Example snippets (not currently wired to UI).
 const examples = {
     python: `def fibonacci(n):
     if n <= 1:
@@ -571,7 +602,7 @@ print(fibonacci(10))`,
 }`
 };
 
-// Add keyboard shortcut
+// Enter analyzes; Ctrl/Cmd+Enter also analyzes (Shift+Enter inserts line).
 document.getElementById('codeInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
@@ -584,6 +615,7 @@ document.getElementById('codeInput').addEventListener('keydown', (e) => {
     }
 });
 
+// Rebuilds the line-number gutter based on visual line count.
 function updateLineNumbers() {
     const input = document.getElementById('codeInput');
     const lineNumbers = document.getElementById('lineNumbers');
@@ -598,6 +630,7 @@ function updateLineNumbers() {
     lineNumbers.scrollTop = input.scrollTop;
 }
 
+// Keeps line-number gutter scroll position aligned to the textarea.
 function syncLineNumbersScroll() {
     const input = document.getElementById('codeInput');
     const lineNumbers = document.getElementById('lineNumbers');
@@ -606,6 +639,7 @@ function syncLineNumbersScroll() {
 
 let lineMeasure;
 
+// Measures wrapped line count by mirroring textarea styles in a hidden node.
 function getVisualLineCount(textarea) {
     if (!lineMeasure) {
         lineMeasure = document.createElement('div');
@@ -636,6 +670,7 @@ function getVisualLineCount(textarea) {
 
 let clearTimer;
 
+// Live line updates + auto-clear when the input is emptied.
 document.getElementById('codeInput').addEventListener('input', () => {
     const input = document.getElementById('codeInput');
     updateLineNumbers();
@@ -648,8 +683,10 @@ document.getElementById('codeInput').addEventListener('input', () => {
 });
 document.getElementById('codeInput').addEventListener('scroll', syncLineNumbersScroll);
 
+// Initialize line numbers on first load.
 updateLineNumbers();
 
+// Legacy history restore (kept for now; safe to remove if not needed).
 function tryLoadHistoryFromStorage() {
     let entry = null;
     try {
@@ -689,6 +726,7 @@ function tryLoadHistoryFromStorage() {
     }
 }
 
+// Legacy history query parsing (safe to remove if not needed).
 function getHistoryFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const idParam = params.get('historyId');
@@ -709,9 +747,11 @@ function getHistoryFromUrl() {
     return null;
 }
 
+// Legacy history state (safe to remove if not needed).
 const history = loadHistory();
 let lastResults = null;
 
+// Legacy history record writer (safe to remove if not needed).
 function pushHistory(results, rawCode) {
     const entry = {
         id: `${Date.now()}`,
@@ -732,10 +772,12 @@ function pushHistory(results, rawCode) {
     saveHistory();
 }
 
+// Legacy history persistence (safe to remove if not needed).
 function saveHistory() {
     localStorage.setItem('codeAnalyzerHistory', JSON.stringify(history));
 }
 
+// Legacy history load (safe to remove if not needed).
 function loadHistory() {
     try {
         return JSON.parse(localStorage.getItem('codeAnalyzerHistory')) || [];
@@ -745,11 +787,13 @@ function loadHistory() {
 }
 
 
+// Legacy history entry access (safe to remove if not needed).
 function loadHistoryEntry(index) {
     const entries = loadHistory();
     return entries[index] || null;
 }
 
+// Legacy history restore by index (safe to remove if not needed).
 function tryLoadHistoryFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const indexParam = params.get('history');
@@ -786,7 +830,9 @@ function tryLoadHistoryFromUrl() {
     }
 }
 
+// Copies a full analysis report to the clipboard.
 document.getElementById('copyResultBtn').addEventListener('click', async () => {
+    // Require a prior analysis before copying.
     if (!lastResults) return;
 
     const language = lastResults.language || 'Unknown';
@@ -797,6 +843,7 @@ document.getElementById('copyResultBtn').addEventListener('click', async () => {
     const patterns = (lastResults.features || []).join(', ');
     const alternatives = (lastResults.alternatives || []).join(', ');
 
+    // Build a multi-line report for the clipboard.
     const text = [
         `Language: ${language}`,
         confidence,
@@ -809,6 +856,7 @@ document.getElementById('copyResultBtn').addEventListener('click', async () => {
     ].filter(Boolean).join('\n');
 
     try {
+        // Clipboard write can fail if permissions are blocked.
         await navigator.clipboard.writeText(text);
         const copyBtn = document.getElementById('copyResultBtn');
         const originalText = copyBtn.textContent;
